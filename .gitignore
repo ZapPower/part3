@@ -1,0 +1,46 @@
+# Prerequisites
+*.d
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+*.obj
+
+# Precompiled Headers
+*.gch
+*.pch
+
+# Compiled Dynamic libraries
+*.so
+*.dylib
+*.dll
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+*.lib
+
+# Executables
+*.exe
+*.out
+*.app
+
+# Directories
+[Dd]ebug/
+[Rr]elease/
+build/
+bin/
+obj/
+
+.idea/          # CLion
+.vscode/        # VS Code
+*.layout        # Code::Blocks
+*.depend        # Code::Blocks
+.vs/            # Visual Studio
+*.suo           # Visual Studio
+*.user          # Qt Creator
+*.pro.user      # Qt Creator
+CMakeLists.txt.user # CMake
+.vscode
