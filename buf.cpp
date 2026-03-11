@@ -63,24 +63,72 @@ BufMgr::~BufMgr() {
 }
 
 
-const Status BufMgr::allocBuf(int & frame) 
-{
+ /**
+  * Allocates a free buffer frame from the current buffer
+  * using the clock replacement algorithm
+  * 
+  * @param frame The frameNo returned if completed successfully
+  * 
+  * @return BUFFEREXCEEDED if all frames are pinned,
+  *     UNIXERR if I/O error when flushing a page,
+  *     OK otherwise
+  */
+const Status BufMgr::allocBuf(int & frame) {
+    Status s = OK;
+    bool completed = false;
+    int bufCount = 0;
 
+    while (!completed) {
+        advanceClock();
+        bufCount++;
 
+        if (bufCount > numBufs + 1) {
+            return BUFFEREXCEEDED;
+        }
 
+        // bufDesc for the next buffer frame
+        BufDesc* desc = &bufTable[clockHand];
 
+        // Check each relevant field
 
+        if (!desc->valid) {
+            // unused frame
+            frame = desc->frameNo;
+            return s;
+        }
+        if (desc->refbit) {
+            desc->refbit = false;
+            continue;
+        }
+        if (desc->pinCnt > 0) {
+            continue;
+        }
+        if (desc->dirty) {
+            // flush page to disk
+            s = desc->file->writePage(desc->pageNo, &(bufPool[desc->pageNo]));
+            if (s != OK) return s;
+        }
 
+        // set the frameNo and remove current frame from hashTable
+        frame = desc->frameNo;
+        s = hashTable->remove(desc->file, desc->pageNo);
+        completed = true;
+    }
+    
+    return s;
 }
 
 	
 const Status BufMgr::readPage(File* file, const int PageNo, Page*& page)
 {
+    int frameNo;
+    Status s = OK;
+    s = allocBuf(frameNo);
+    if (s != OK) {
+        return s;
+    }
 
-
-
-
-
+    // TODO: complete readPage
 }
 
 
