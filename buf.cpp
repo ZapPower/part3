@@ -189,6 +189,16 @@ const Status BufMgr::unPinPage(File* file, const int PageNo,
     return OK;
 }
 
+/**
+ * Allocates a new page from a given file and adds it to the buffer
+ * 
+ * @param file The file to allocate a new page to
+ * @param pageNo The returned pageNo of the allocated page
+ * @param page The returned page pointer from the pool
+ * 
+ * @return UNIXERR for I/O errors, BUFFEREXCEEDED if all buffer frames are pinned,
+ *      and HASHTBLERROR if a hash table error occurred
+ */
 const Status BufMgr::allocPage(File* file, int& pageNo, Page*& page) {
     // Allocate new page to file, create new buffer frame
     // & insert the frame into the hashTable
