@@ -142,15 +142,26 @@ const Status BufMgr::unPinPage(File* file, const int PageNo,
 
 }
 
-const Status BufMgr::allocPage(File* file, int& pageNo, Page*& page) 
-{
+const Status BufMgr::allocPage(File* file, int& pageNo, Page*& page) {
+    // Allocate new page to file, create new buffer frame
+    // & insert the frame into the hashTable
 
+    Status s = file->allocatePage(pageNo);
+    if (s != OK) return s;
+    int frameNo;
+    s = allocBuf(frameNo);
+    if (s != OK) return s;
+    s = hashTable->insert(file, pageNo, frameNo);
+    if (s != OK) return s;
+    
+    // Set the description for the allocated frame
 
+    BufDesc* desc = &bufTable[clockHand];
+    desc->Set(file, pageNo);
 
+    // Get the relevant page from the pool
 
-
-
-
+    page = &bufPool[pageNo];
 }
 
 const Status BufMgr::disposePage(File* file, const int pageNo) 
