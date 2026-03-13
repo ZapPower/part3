@@ -118,28 +118,75 @@ const Status BufMgr::allocBuf(int & frame) {
     return s;
 }
 
-	
+ /**
+  * Attempts to read a page from the buffer pool. If the page is in the pool
+  * it is returned immediately. If not, a free buffer frame is allocated
+  * and the page is read from disk into the buffer pool.
+  * 
+  * @param file file to read from
+  * @param PageNo page number to read
+  * @param page reference to the page to read into
+  * 
+  * @return BUFFEREXCEEDED if all frames are pinned,
+  *     UNIXERR if Unix error occurs,
+  *     HASHTBLERROR if a hash table error occurs,
+  *     OK otherwise
+  */
 const Status BufMgr::readPage(File* file, const int PageNo, Page*& page)
 {
     int frameNo;
     Status s = OK;
-    s = allocBuf(frameNo);
+    s = hashTable->lookup(file, PageNo, frameNo);
     if (s != OK) {
-        return s;
+        // page not in buffer pool, need to read from disk
+        s = allocBuf(frameNo);
+        if (s != OK) return s;
+
+        s = file->readPage(PageNo, &(bufPool[frameNo]));
+        if (s != OK) return s;
+
+        s = hashTable->insert(file, PageNo, frameNo);
+        if (s != OK) return s;
+        bufTable[frameNo].Set(file, PageNo);
+        page = &(bufPool[frameNo]);
+    } else {
+        // page already in buffer pool
+        bufTable[frameNo].refbit = true;
+        bufTable[frameNo].pinCnt++;
+        page = &(bufPool[frameNo]);
     }
 
-    // TODO: complete readPage
+
+    return OK;
 }
 
-
+/**
+  * Decrements the pin count of a page or does nothing
+  * if the page is not yet pinned
+  * 
+  * @param file file to unpin
+  * @param PageNo page number to unpin
+  * @param dirty indicates whether the page is dirty
+  * 
+  * @return PAGENOTPINNED if the page is not pinned,
+  *     OK otherwise
+  */
 const Status BufMgr::unPinPage(File* file, const int PageNo, 
 			       const bool dirty) 
 {
+    int frameNo;
+    Status s = OK;
+    s = hashTable->lookup(file, PageNo, frameNo);
+    if (s != OK) return s;
 
+    if (bufTable[frameNo].pinCnt == 0) return PAGENOTPINNED;
+    bufTable[frameNo].pinCnt--;
+    
+    if (dirty) {
+        bufTable[frameNo].dirty = true;
+    }
 
-
-
-
+    return OK;
 }
 
 const Status BufMgr::allocPage(File* file, int& pageNo, Page*& page) {
