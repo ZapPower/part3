@@ -82,7 +82,7 @@ const Status BufMgr::allocBuf(int & frame) {
         advanceClock();
         bufCount++;
 
-        if (bufCount > numBufs + 1) {
+        if (bufCount > (int)(2 * numBufs)) {
             return BUFFEREXCEEDED;
         }
 
@@ -105,13 +105,14 @@ const Status BufMgr::allocBuf(int & frame) {
         }
         if (desc->dirty) {
             // flush page to disk
-            s = desc->file->writePage(desc->pageNo, &(bufPool[desc->pageNo]));
+            s = desc->file->writePage(desc->pageNo, &(bufPool[clockHand]));
             if (s != OK) return s;
         }
 
         // set the frameNo and remove current frame from hashTable
-        frame = desc->frameNo;
+         frame = desc->frameNo;
         s = hashTable->remove(desc->file, desc->pageNo);
+        desc->Clear();
         completed = true;
     }
     
@@ -213,12 +214,12 @@ const Status BufMgr::allocPage(File* file, int& pageNo, Page*& page) {
     
     // Set the description for the allocated frame
 
-    BufDesc* desc = &bufTable[clockHand];
-    desc->Set(file, pageNo);
+    bufTable[frameNo].Set(file, pageNo);
 
     // Get the relevant page from the pool
 
-    page = &bufPool[pageNo];
+    page = &bufPool[frameNo];
+    return OK;
 }
 
 const Status BufMgr::disposePage(File* file, const int pageNo) 
